@@ -8,13 +8,13 @@ resource "heroku_app" "app_staging" {
   region = var.heroku_app_region
 
   config_vars = {
-    APP_ENVIRONMENT       = "staging"
+    APP_ENVIRONMENT = "staging"
   }
 }
 
 resource "heroku_addon" "papertrail" {
   app  = heroku_app.app_staging.name
-  plan = "papertrail:fixa"
+  plan = "papertrail:choklad"
 }
 
 resource "heroku_pipeline_coupling" "coupling_staging" {
@@ -31,7 +31,7 @@ resource "heroku_app" "app_prod" {
   region = var.heroku_app_region
 
   config_vars = {
-    APP_ENVIRONMENT       = "prod"
+    APP_ENVIRONMENT = "prod"
   }
 }
 
@@ -42,7 +42,7 @@ resource "heroku_addon_attachment" "papertrail_attachment" {
 }
 
 resource "heroku_domain" "domain_prod" {
-  app  = heroku_app.app_prod.name
+  app      = heroku_app.app_prod.name
   hostname = var.app_url
 }
 

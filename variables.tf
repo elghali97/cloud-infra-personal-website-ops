@@ -4,16 +4,13 @@
 
 # General settings
 variable "app_name" {
-    type = string
-    default = "forumorg"
+  type = string
 }
 
 variable "app_url" {
-    type = string
-    default = "www.forumorg.org"
+  type = string
 }
 
 variable "heroku_app_region" {
-    type = string
-    default = "eu"
+  type = string
 }
