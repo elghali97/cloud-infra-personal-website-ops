@@ -2,47 +2,50 @@
 ################ APPS ###############
 #####################################
 
-#### STAGING ########################
-resource "heroku_app" "app_staging" {
-  name   = "${var.app_name}-dta"
-  region = var.heroku_app_region
+######## GENERATE REVIEW APP ########
 
-  config_vars = {
-    APP_ENVIRONMENT = "staging"
+resource "heroku_review_app_config" "review_app_config" {
+  pipeline_id = heroku_pipeline.main_pipeline.id
+  org_repo    = "${local.tags["ebench:git-user"]}/${local.tags["ebench:git-repo"]}"
+  base_name   = var.project_name
+
+  automatic_review_apps = true
+  destroy_stale_apps    = true
+
+  stale_days = 5
+
+  deploy_target {
+    id   = var.heroku_app_region
+    type = "region"
   }
 }
 
-resource "heroku_addon" "papertrail" {
-  app  = heroku_app.app_staging.name
-  plan = "papertrail:choklad"
-}
-
-resource "heroku_pipeline_coupling" "coupling_staging" {
-  app      = heroku_app.app_staging.id
-  pipeline = heroku_pipeline.main_pipeline.id
-  stage    = "staging"
-}
-
-
-#### PROD ############################
-
-resource "heroku_app" "app_prod" {
-  name   = "${var.app_name}-prod"
-  region = var.heroku_app_region
+############ GENERATE APPS ##########
+resource "heroku_app" "app" {
+  for_each = local.env
+  name     = each.value
+  region   = var.heroku_app_region
 
   config_vars = {
-    APP_ENVIRONMENT = "prod"
+    APP_ENVIRONMENT = each.key
   }
 }
 
-resource "heroku_addon_attachment" "papertrail_attachment" {
-  app_id   = heroku_app.app_prod.id
-  addon_id = heroku_addon.papertrail.id
-  name     = "PAPERTRAIL"
+resource "heroku_build" "app_build" {
+  for_each   = heroku_app.app
+  app        = each.value.id
+  buildpacks = ["heroku/nodejs", "https://github.com/heroku/heroku-buildpack-static"]
+
+  source {
+    # This app uses a community buildpack, set it in `buildpacks` above.
+    url     = "https://github.com/heroku/heroku-buildpack-static/archive/refs/tags/v7.tar.gz"
+    version = "v7"
+  }
 }
 
-resource "heroku_pipeline_coupling" "coupling_prod" {
-  app      = heroku_app.app_prod.id
+resource "heroku_pipeline_coupling" "coupling" {
+  for_each = heroku_app.app
+  app      = each.value.id
   pipeline = heroku_pipeline.main_pipeline.id
-  stage    = "production"
+  stage    = local.env_mapping[each.value.config_vars["APP_ENVIRONMENT"]]
 }
